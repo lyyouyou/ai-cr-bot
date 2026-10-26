@@ -1,0 +1,35 @@
+diff --git a/src/components/NewsList.jsx b/src/components/NewsList.jsx
+--- a/src/components/NewsList.jsx
++++ b/src/components/NewsList.jsx
+@@ -1,28 +1,34 @@
+ import React, { useEffect, useState } from 'react';
+
+ export default function NewsList() {
+   const [news, setNews] = useState([]);
+   const [html, setHtml] = useState('');
+
++  useEffect(() => {
++    fetch('/api/news').then((res) => res.json()).then((data) => setNews(data));
++    const timer = setInterval(() => { fetch('/api/news').then((r) => r.json()).then(setNews); }, 5000);
++  }, []);
++
++  useEffect(() => {
++    document.getElementById('banner').innerHTML = html;
++  }, [html]);
++
+   return (
+     <div>
+-      <h2>新闻列表</h2>
++      <h2>新闻列表（实时刷新）</h2>
++      <div dangerouslySetInnerHTML={{ __html: html }} />
+       <ul>
+-        {news.map((item) => (
+-          <li key={item.id}>{item.title}</li>
+-        ))}
++        {news.map((item, index) => (
++          <li key={index}>{item.title}</li>
++        ))}
+       </ul>
+     </div>
+   );
+ }

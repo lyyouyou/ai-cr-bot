@@ -1,0 +1,47 @@
+# 把本文件复制为 .github/workflows/ai-review.yml 后生效
+# 作用：PR 新建或更新时，GitHub 自动在云端跑一次评审（不用自己租服务器）。
+# 使用前：在仓库 Settings → Secrets 里配置 LLM_API_KEY（以及 LLM_BASE_URL / LLM_MODEL）。
+
+name: AI Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要拿到完整 diff
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 生成本次 diff 并评审
+        working-directory: ai-cr-bot
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: |
+          # 对比 PR 分支与目标分支，导出 diff（在 ai-cr-bot 目录内执行）
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          node cli.js --diff pr.diff --live \
+            --title "${{ github.event.pull_request.title }}" \
+            --body "${{ github.event.pull_request.body }}" > review.md
+
+      - name: 把评审结果作为 PR 评论发回
+        # 这里用 actions/github-script 调用评论 API（仓库自带 GITHUB_TOKEN，无需额外密钥）
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('ai-cr-bot/review.md', 'utf8');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

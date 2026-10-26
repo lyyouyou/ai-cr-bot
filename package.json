@@ -1,0 +1,13 @@
+{
+  "name": "ai-cr-bot",
+  "version": "0.1.0",
+  "description": "一个前端工程师可从零跑通的 AI 自动化代码评审（Code Review）最小流程",
+  "type": "module",
+  "scripts": {
+    "review:demo": "node cli.js --diff examples/buggy.diff",
+    "review:real": "node cli.js --diff examples/buggy.diff --live"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
